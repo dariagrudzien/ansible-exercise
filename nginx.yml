@@ -1,0 +1,8 @@
+---
+##
+# Role playbook
+##
+- hosts: dardar
+  roles:
+  - nginx
+...
