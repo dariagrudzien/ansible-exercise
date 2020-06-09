@@ -2,7 +2,43 @@
 ##
 # Role playbook
 ##
-- hosts: dardar
-  roles:
-  - nginx
-...
+- hosts: all
+  vars:
+    favcolor: blue
+  vars_files:
+    - ./vars.yml
+  pre_tasks:
+    - name: Who is running the update
+      become: false
+      local_action: command whoami
+      register: whoami
+    - name: Announce start to slack
+      uri:
+        url: "{{ slack_webhook }}"
+        method: POST
+        body: '{"text":"[ansible][*{{inventory_hostname}}*] {{whoami.stdout}} running nginx magic! :rocket: "}'
+        status_code: 200
+        body_format: json
+      delegate_to: localhost
+      become: false
+      # https://docs.ansible.com/ansible/2.5/user_guide/playbooks_checkmode.html#information-about-check-mode-in-variables
+      ignore_errors: "{{ ansible_check_mode }}"
+  tasks:
+  # - name: os update
+  # TODO: figure out os update
+  - name: yum update
+    shell: yum update -y
+    become: yes
+    register: yum_update_result
+  - name: install nginx
+    yum:
+      name: nginx
+      state: latest
+    register: nginx_result
+  # - name: reboot the system
+  # TODO: figure out password for reboot
+  # - name: verify nginx running
+  # TODO: https://docs.ansible.com/ansible/2.3/playbooks_intro.html#handlers-running-operations-on-change
+  # Figure out how to check that nginx is in running state
+
+
