@@ -2,8 +2,7 @@
 
 TODO:
 
-* update packages,
-* update operating system
+* update packages
 * install nginx
 * reboot
 * verify that nginx is running
