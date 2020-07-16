@@ -1,0 +1,30 @@
+- name: yum update
+  shell: yum update -y
+  become: true
+  register: yum_result
+  failed_when: (yum_result.stdout == '') or (yum_result.stderr != '')
+  changed_when: (yum_result.stderr == '') or (yum_result.stdout != '')
+- name: install nginx
+  yum:
+    name: nginx
+    state: latest
+  become: true
+  become_user: root
+  register: nginx_result
+  failed_when: nginx_result.rc != 0
+- name: Reboot host
+  reboot:
+    pre_reboot_delay: 1
+    post_reboot_delay: 300 # 5 * 60
+  become: true
+  become_user: root
+  register: reboot
+  # https://docs.ansible.com/ansible/latest/modules/reboot_module.html#return-values
+  failed_when: reboot.rebooted != true
+  changed_when: reboot.rebooted == true
+- name: verify nginx is installed
+  shell: nginx -v
+  become: true
+  become_user: root
+  register: nginx_check
+  failed_when: nginx_check.stderr_lines != 0

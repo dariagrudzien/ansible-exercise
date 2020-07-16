@@ -1,7 +1,4 @@
 ---
-##
-# Role playbook
-##
 - hosts: all
   vars:
     favcolor: blue
@@ -24,45 +21,16 @@
       # https://docs.ansible.com/ansible/2.5/user_guide/playbooks_checkmode.html#information-about-check-mode-in-variables
       ignore_errors: "{{ ansible_check_mode }}"
 
-  tasks:
-
-    - name: yum update
-      shell: yum update -y
-      become: yes
-      register: yum_update_result
-
-    - name: install nginx
-      yum:
-        name: nginx
-        state: latest
-      register: nginx_result
-      become: yes
-      notify:
-        - restart nginx
-
-    # https://www.jeffgeerling.com/blog/2018/reboot-and-wait-reboot-complete-ansible-playbook
-    - name: Reboot immediately if there was a change.
-      shell: "sleep 5 && reboot"
-      async: 1
-      poll: 0
-      become: yes
-      when: nginx_result is changed
-
-    - name: Wait for the reboot to complete if there was a change.
-      wait_for_connection:
-        connect_timeout: 20
-        sleep: 5
-        delay: 5
-        timeout: 300
-      when: nginx_result is changed
-
-  # TODO: this doesn't seem to be a good idea
-  # fatal: [dardar]: FAILED! => {"changed": false, "msg": "Unable to enable service nginx: Failed to execute operation: Connection timed out\n"}
-
-  handlers:
-    - name: restart nginx
-      service:
-        name: nginx
-        state: restarted
-        enabled: yes
-
+  post_tasks:
+    - name: Announce finish to slack
+      uri:
+        # webhook for #sre-feed
+        url: "{{ slack_webhook }}"
+        method: POST
+        body: '{"text":"[ansible][*{{inventory_hostname}}*] {{whoami.stdout}} completed rebooting the host"}'
+        status_code: 200
+        body_format: json
+      delegate_to: localhost
+      become: false
+  roles:
+    - { role: ./roles/nginx }
